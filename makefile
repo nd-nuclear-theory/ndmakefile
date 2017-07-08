@@ -638,20 +638,21 @@ install_dir_include := $(install_prefix)/include
 install_dir_lib := $(install_prefix)/lib
 MKDIR := mkdir -p 
 
-.PHONY: install_bin
-install_bin: programs
+.PHONY: install-bin
+install-bin: programs
 	@echo Installing binaries to $(install_dir_bin)...
 	install -D $(executables) --target-directory=$(install_dir_bin)
 
-.PHONY: install_include
-install_include: ${sources_h}
+.PHONY: install-include
+install-include: ${sources_h}
 	@echo Installing includes to $(install_dir_include)...
 	@echo WARNING: not yet supported
+	# TODO
 ##	install -D ${sources_h} --target-directory=$(install_dir_lib)
 ##	@ $(foreach source,$(sources_h),echo $(source); )
 
-.PHONY: install_lib
-install_lib: libraries
+.PHONY: install-lib
+install-lib: libraries
 	@echo Installing libraries to $(install_dir_lib)...
 	install -D $(archives) --target-directory=$(install_dir_lib) --mode=u=rw,go=r
 
