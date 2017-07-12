@@ -11,7 +11,7 @@
 # 2/24/11 (mac): Created.
 # 3/10/11 (mac): Initial development completed.
 # 4/25/11 (mac): Addition of search_dirs_include and search_dirs_lib
-#   configuration variables.  Addition of optional environment variable 
+#   configuration variables.  Addition of optional environment variable
 #   HYBRID_MAKE_DIR for config.mk location.
 # 5/02/11 (tdyt): Launch prepare_install_directory script during install.
 # 11/5/11 (mac): Add installation script hook install_script.
@@ -25,12 +25,13 @@
 #     (MAKEFILE_CONFIG_DIR).
 #   - Enable override of install_dir_bin.
 #   - DEPRECATED: list-mpi-objects-cpp and list-mpi-programs-cpp
+# 7/12/17 (pjf): Add support for producing shared object (.so) files.
 ################################################################
 
 ################################################################
 #
 # config.mk -- describes the external library and compiler configuration
-# 
+#
 # This file contains the information which is likely to be different
 # for each machine on which the project is built.
 #
@@ -52,8 +53,11 @@
 #   fortran_libs -- the libraries required for a C++ project to
 #     properly link when including FORTRAN objects
 #
-#   fortran_flags -- linking flags required for a C++ project to 
+#   fortran_flags -- linking flags required for a C++ project to
 #     include FORTRAN objects
+#
+#   shared_ldflags -- linking flags required for producing a shared
+#     object (.so) file.
 #
 # These are all initialized to a null string, so config.mk can
 # append to them (with +=) if preferred.
@@ -63,7 +67,7 @@
 #
 ################################################################
 #
-# project.mk -- defines the contents of the project 
+# project.mk -- defines the contents of the project
 #
 # This file contains the information on the overall structure of the
 # project and compiler/linking configuration for the whole project
@@ -76,19 +80,19 @@
 # project_name: project name, e.g., for use in the tar file name
 #   when make produces a source tar distribution
 #
-# modules: list of "modules", i.e., subdirectories each of which 
+# modules: list of "modules", i.e., subdirectories each of which
 #   a module.mk include file
 #
-# extras (optional): list of extra files or directories to be bundled in the 
+# extras (optional): list of extra files or directories to be bundled in the
 #   source tar distribution (e.g., README.md)
 #
-# install_prefix (optional): install prefix, e.g., binaries are installed to 
+# install_prefix (optional): install prefix, e.g., binaries are installed to
 #   <install_prefix>/bin (default: ".")
 #
 # install_dir_bin (optional): to override binary install directory name
 #   (default: <install_prefix>/bin)
 #
-# install_script (optional): script to be run during "make install", after binaries 
+# install_script (optional): script to be run during "make install", after binaries
 #   have been installed to binary directory
 #
 # --------
@@ -110,35 +114,39 @@
 # date files to be generated):
 #
 # module_units_h -- units consisting of file.h only
-# module_units_cpp-h -- units consisting of file.cpp + file.h 
+# module_units_cpp-h -- units consisting of file.cpp + file.h
 #   for compilation to file.o and inclusion in library
 # module_units_f -- units consisting of file.f only
 # module_programs_cpp -- programs consisting of file.cpp to be compiled and linked
 # module_programs_f -- programs consisting of file.f to be compiled and linked
-# module_generated -- generated files created by rules defined in module.mk files 
+# module_generated -- generated files created by rules defined in module.mk files
 #
-# These variables also determine the *source* files to be included in the source tar.  
+# These variables also determine the *source* files to be included in the source tar.
 #
 # --------
 #
 # $(eval $(library)) -- should be included if the object files are to
 #   be assembled into a library archive (named after the module
 #   directory)
-# 
+#
+# $(eval $(shared-library)) -- should be included if the object files are to
+#   be assembled into a shared object file (named after the module
+#   directory)
+#
 # --------
 #
 # This file would also normally define any dependencies and target-specific
-# variable assignments.  
+# variable assignments.
 #
 # Notes:
-# (1) All filenames must be relative to the top of the source tree, 
+# (1) All filenames must be relative to the top of the source tree,
 #   i.e., SU3NCSM/src.
 # (2) The current directory for this module can be referenced
 #   as $(current-dir), in the target and prerequisite names.
 # (3) Predefined prerequisites:
-#    All object files from units_cpp-h are already dependent on both 
+#    All object files from units_cpp-h are already dependent on both
 #      their .cpp and .h file.
-#    All object files from units_f are already dependent on 
+#    All object files from units_f are already dependent on
 #      their .f file.
 #
 # EX: $(current-dir)/myunit.o : $(current-dir)/anotherunit.h libraries/somelibrary/somelibrary.h
@@ -185,8 +193,9 @@
 search_prefix :=
 search_dirs_include :=
 search_dirs_lib :=
-fortran_libs := 
+fortran_libs :=
 fortran_flags :=
+shared_ldflags :=
 install_prefix := .
 
 MAKEFILE_CONFIG_DIR ?= .
@@ -296,13 +305,19 @@ endif
 #  creates definitions so that local module forms a library
 #  and defines dependency on object files
 define library
-  $(eval module_library := $(library-name))	
+  $(eval module_library := $(library-name))
   $(eval module_library_ar_name := $(call sandwich,$(current-dir)/,$(module_library),.a))
   $(eval module_library_units := $(module_units_cpp-h) $(module_units_f))
   $(eval module_library_objects := $(call sandwich,$(current-dir)/,$(module_library_units),.o))
   libraries += $(addprefix $(current-dir)/,$(module_library))
   library_journal += $(module_library) - $(module_library_units) ...
   $(foreach obj,$(module_library_objects),$(eval $(module_library_ar_name): $(obj)) )
+endef
+
+define shared-library
+  $(eval module_library_so_name := $(call sandwich,$(current-dir)/,$(module_library),.so))
+  shared_libraries += $(addprefix $(current-dir)/,$(module_library))
+  $(foreach obj,$(module_library_objects),$(eval $(module_library_so_name): $(obj)) )
 endef
 
 #$(eval $(end-module))
@@ -319,14 +334,14 @@ endef
 
 # Debugging note: The dependency declaration
 #   $(module_library_ar_name): $(module_library_objects)
-# yields virtual memory overflow errors (GNU make 3.80 Cygwin) for long 
-# lists of object files (more than ~5).  This is due to a known bug in GNU 
+# yields virtual memory overflow errors (GNU make 3.80 Cygwin) for long
+# lists of object files (more than ~5).  This is due to a known bug in GNU
 # make 3.80, fixed in 3.81:
 #   http://stackoverflow.com/questions/2428506/workaround-for-gnu-make-3-80-eval-bug
 #   When $(eval) evaluates a line that is over 193 characters, Make
 #   crashes with a "Virtual Memory Exhausted" error.
-# The workaround applied here is to add the dependencies one by on in a foreach 
-# *without* enclosing the foreach in an eval.  
+# The workaround applied here is to add the dependencies one by on in a foreach
+# *without* enclosing the foreach in an eval.
 
 
 ################################################################
@@ -337,7 +352,7 @@ endef
 #
 # assumes tree:
 # <project_base>/
-# <project_base>/libraries   
+# <project_base>/libraries
 # ...
 project_base := $(dir $(PWD))
 src_library_dir := ./libraries
@@ -390,7 +405,7 @@ LDFLAGS += $(fortran_flags)
 # units_h -- units consisting of file.h only
 units_h :=
 
-# units_cpp-h -- units consisting of file.cpp + file.h 
+# units_cpp-h -- units consisting of file.cpp + file.h
 #   for compilation to file.o and inclusion in library
 units_cpp-h :=
 
@@ -400,18 +415,21 @@ units_f :=
 # libraries -- libraries consisting of file.a to be used in program linking
 libraries :=
 
+# shared_libraries -- shared libraries consisting of file.so to be linked
+shared_libraries :=
+
 # programs_cpp -- programs consisting of file.cpp to be compiled and linked
 programs_cpp :=
 
 # programs_f -- programs consisting of file.f to be compiled and linked
 programs_f :=
 
-# generated -- generated files created by rules defined in module.mk files 
-generated := 
+# generated -- generated files created by rules defined in module.mk files
+generated :=
 
 # diagnostic accumulators
 library_journal :=
-debug_output := 
+debug_output :=
 
 ################################################################
 # iteration over modules
@@ -429,18 +447,20 @@ h_ext := .h
 f_ext := .F
 o_ext := .o
 archive_ext := .a
+so_ext := .so
 binary_ext := $(get-exe-ext)
 
-sources_cpp := $(addsuffix $(cpp_ext),$(units_cpp-h) $(programs_cpp)) 
-sources_h := $(addsuffix $(h_ext),$(units_cpp-h) $(units_h)) 
-sources_f := $(addsuffix $(f_ext),$(units_f) $(programs_f)) 
+sources_cpp := $(addsuffix $(cpp_ext),$(units_cpp-h) $(programs_cpp))
+sources_h := $(addsuffix $(h_ext),$(units_cpp-h) $(units_h))
+sources_f := $(addsuffix $(f_ext),$(units_f) $(programs_f))
 sources := $(sources_cpp) $(sources_h) $(sources_f)
 
 makefiles := $(MAKEFILE_LIST)
 
-objects := $(addsuffix $(o_ext),$(units_cpp-h) $(units_f) $(programs_cpp) $(programs_f)) 
+objects := $(addsuffix $(o_ext),$(units_cpp-h) $(units_f) $(programs_cpp) $(programs_f))
 
 archives := $(addsuffix $(archive_ext),$(libraries))
+shared_objects := $(addsuffix $(so_ext),$(shared_libraries))
 
 programs := $(programs_cpp) $(programs_f)
 executables := $(addsuffix $(binary_ext),$(programs))
@@ -473,8 +493,12 @@ endif
 # object library rule
 ARFLAGS = r
 %.a:
-	$(RM) $@           
+	$(RM) $@
 	$(AR) $(ARFLAGS) $@ $^
+
+%.so: #$(archives)
+	$(RM) $@
+	$(LD) $(LDFLAGS) $(shared_ldflags) -shared $^ $(LOADLIBES) $(LDLIBS) -o $@
 
 ################################################################
 # linker
@@ -510,7 +534,7 @@ endif
 #
 #     MPICXX (optional): the MPI C++ command, if your project uses MPI
 #
-#   EX: 
+#   EX:
 #
 #     list-mpi-programs-cpp = $(filter %MPI,$(programs_cpp))
 #     list-mpi-objects-cpp = $(addsuffix $(o_ext),$(list-mpi-programs-cpp))
@@ -538,6 +562,7 @@ ifndef MAKEFILE_STANDALONE
 
 $(foreach target,$(libraries),$(eval .PHONY : $(notdir $(target))) )
 $(foreach target,$(libraries),$(eval $(notdir $(target)) : $(addsuffix .a,$(target)) ))
+$(foreach target,$(shared_libraries),$(eval $(notdir $(target)) : $(addsuffix .so,$(target)) ))
 
 $(foreach target,$(programs),$(eval .PHONY : $(notdir $(target))) )
 $(foreach target,$(programs),$(eval $(notdir $(target)) : $(target)) )
@@ -601,7 +626,7 @@ help:
 	@echo "  <program> -- shorthand for full path to program	  "
 	@echo "    EX: Use shorthand target myprog for xxxx/xxxx/myprog.            "
 
-# ending message 
+# ending message
 
 .PHONY: finished
 finished:
@@ -621,9 +646,9 @@ finished:
 all: splash libraries programs generated finished
 
 .PHONY: libraries
-libraries: $(archives)
+libraries: $(archives) $(shared_objects)
 
-.PHONY: programs 
+.PHONY: programs
 programs: $(programs)
 
 .PHONY: generated
@@ -636,7 +661,7 @@ generated: $(generated)
 install_dir_bin ?= $(install_prefix)/bin  # use ?= to allow project-specific override
 install_dir_include := $(install_prefix)/include
 install_dir_lib := $(install_prefix)/lib
-MKDIR := mkdir -p 
+MKDIR := mkdir -p
 
 .PHONY: install-bin
 install-bin: programs
@@ -659,7 +684,7 @@ install-lib: libraries
 .PHONY: install
 ##install: install_bin install_include install_lib
 install: install_bin
-	$(install_script) 
+	$(install_script)
 
 
 ################################################################
@@ -681,22 +706,22 @@ tar_constituents = $(sources) $(makefiles) $(extras)
 # To put in source directory instead of parent: $(pwd_tail)/$(tarball)
 
 .PHONY: distrib
-distrib: 
+distrib:
 	@ echo Making source tarball $(tarball)...
 	@ cd ..; tar --dereference -zcvf $(tarball) $(addprefix $(pwd_tail)/,$(tar_constituents))
 	@ ls -Fla ../$(tarball)
 
 # Make alias "distribution"
 .PHONY: distribution
-distribution: distrib 
+distribution: distrib
 
 ################################################################
 # cleanup
 ################################################################
 
 .PHONY: clean
-clean: 
-	$(RM) $(objects) $(archives) $(executables) $(generated)
+clean:
+	$(RM) $(objects) $(archives) $(shared_objects) $(executables) $(generated)
 
 .PHONY: distclean
 distclean: clean
