@@ -683,7 +683,7 @@ install-lib: libraries
 
 .PHONY: install
 ##install: install_bin install_include install_lib
-install: install_bin
+install: install-bin
 	$(install_script)
 
 
