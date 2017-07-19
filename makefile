@@ -26,6 +26,7 @@
 #   - Enable override of install_dir_bin.
 #   - DEPRECATED: list-mpi-objects-cpp and list-mpi-programs-cpp
 # 7/12/17 (pjf): Add support for producing shared object (.so) files.
+# 7/18/17 (mac): Force creation of installation directories.
 ################################################################
 
 ################################################################
@@ -666,12 +667,14 @@ MKDIR := mkdir -p
 .PHONY: install-bin
 install-bin: programs
 	@echo Installing binaries to $(install_dir_bin)...
+	$(MKDIR) $(install_dir_bin)
 	install -D $(executables) --target-directory=$(install_dir_bin)
 
 .PHONY: install-include
 install-include: ${sources_h}
 	@echo Installing includes to $(install_dir_include)...
 	@echo WARNING: not yet supported
+	$(MKDIR) $(install_dir_include)
 	# TODO
 ##	install -D ${sources_h} --target-directory=$(install_dir_lib)
 ##	@ $(foreach source,$(sources_h),echo $(source); )
@@ -679,6 +682,7 @@ install-include: ${sources_h}
 .PHONY: install-lib
 install-lib: libraries
 	@echo Installing libraries to $(install_dir_lib)...
+	$(MKDIR) $(install_dir_lib)
 	install -D $(archives) --target-directory=$(install_dir_lib) --mode=u=rw,go=r
 
 .PHONY: install
