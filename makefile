@@ -584,6 +584,7 @@ splash:
 	@echo $(project_name) make information
 	@echo
 	@echo "Working directory:" $(PWD)
+	@echo "Install prefix: " $(install_prefix)
 	@echo
 	@echo "Modules:" $(modules)
 	@echo
