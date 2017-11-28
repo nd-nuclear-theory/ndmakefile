@@ -27,6 +27,7 @@
 #   - DEPRECATED: list-mpi-objects-cpp and list-mpi-programs-cpp
 # 7/12/17 (pjf): Add support for producing shared object (.so) files.
 # 7/18/17 (mac): Force creation of installation directories.
+# 11/28/17 (pjf): Add macros for including version information in executables.
 ################################################################
 
 ################################################################
@@ -95,6 +96,14 @@
 #
 # install_script (optional): script to be run during "make install", after binaries
 #   have been installed to binary directory
+#
+# --------
+#
+# $(eval $(vcs-git)) -- should be included if the project is under source control
+#   using Git; sets VCS_REVISION preprocessor macro
+#
+# $(eval $(vcs-SVN)) -- should be included if the project is under source control
+#   using SVN; sets VCS_REVISION preprocessor macro
 #
 # --------
 #
@@ -188,6 +197,24 @@
 ################################################################
 
 ################################################################
+# Version Control System setup
+################################################################
+
+#$(eval $(vcs-git))
+#  Extract Git commit information and store in vcs_revision
+#  Note: eval needed for multi-line macro at top level of file
+define vcs-git
+  vcs_revision := $(shell git describe --tags --always --dirty)
+endef
+
+#$(eval $(vcs-svn))
+#  Extract SVN revision information and store in vcs_revision
+#  Note: eval needed for multi-line macro at top level of file
+define vcs-svn
+  vcs_revision := $(shell svnversion -n .)
+endef
+
+################################################################
 # load config.mk
 ################################################################
 
@@ -215,6 +242,13 @@ include project.mk
 
 .PHONY: splash
 splash:
+
+################################################################
+# pass VCS info to compiler
+################################################################
+ifdef vcs_revision
+  CPPFLAGS += -D'VCS_REVISION="$(vcs_revision)"'
+endif
 
 ################################################################
 ################################################################
