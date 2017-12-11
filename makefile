@@ -27,6 +27,8 @@
 #   - DEPRECATED: list-mpi-objects-cpp and list-mpi-programs-cpp
 # 7/12/17 (pjf): Add support for producing shared object (.so) files.
 # 7/18/17 (mac): Force creation of installation directories.
+# 12/10/17 (mac): Separate out test programs in target programs-test.
+#
 ################################################################
 
 ################################################################
@@ -119,6 +121,7 @@
 #   for compilation to file.o and inclusion in library
 # module_units_f -- units consisting of file.f only
 # module_programs_cpp -- programs consisting of file.cpp to be compiled and linked
+# module_programs_cpp_test -- test programs consisting of file.cpp to be compiled and linked
 # module_programs_f -- programs consisting of file.f to be compiled and linked
 # module_generated -- generated files created by rules defined in module.mk files
 #
@@ -276,6 +279,7 @@ define begin-module
   module_units_cpp-h :=
   module_units_f :=
   module_programs_cpp :=
+  module_programs_cpp_test :=
   module_programs_f :=
   module_generated :=
 endef
@@ -329,6 +333,7 @@ define end-module
   units_cpp-h += $(addprefix $(current-dir)/,$(module_units_cpp-h))
   units_f += $(addprefix $(current-dir)/,$(module_units_f))
   programs_cpp += $(addprefix $(current-dir)/,$(module_programs_cpp))
+  programs_cpp_test += $(addprefix $(current-dir)/,$(module_programs_cpp_test))
   programs_f += $(addprefix $(current-dir)/,$(module_programs_f))
   generated += $(addprefix $(current-dir)/,$(module_generated))
 endef
@@ -422,6 +427,9 @@ shared_libraries :=
 # programs_cpp -- programs consisting of file.cpp to be compiled and linked
 programs_cpp :=
 
+# programs_cpp_test -- test programs consisting of file.cpp to be compiled and linked
+programs_cpp_test :=
+
 # programs_f -- programs consisting of file.f to be compiled and linked
 programs_f :=
 
@@ -451,7 +459,7 @@ archive_ext := .a
 so_ext := .so
 binary_ext := $(get-exe-ext)
 
-sources_cpp := $(addsuffix $(cpp_ext),$(units_cpp-h) $(programs_cpp))
+sources_cpp := $(addsuffix $(cpp_ext),$(units_cpp-h) $(programs_cpp) $(programs_cpp_test))
 sources_h := $(addsuffix $(h_ext),$(units_cpp-h) $(units_h))
 sources_f := $(addsuffix $(f_ext),$(units_f) $(programs_f))
 sources := $(sources_cpp) $(sources_h) $(sources_f)
@@ -459,12 +467,16 @@ sources := $(sources_cpp) $(sources_h) $(sources_f)
 makefiles := $(MAKEFILE_LIST)
 
 objects := $(addsuffix $(o_ext),$(units_cpp-h) $(units_f) $(programs_cpp) $(programs_f))
+objects_test := $(addsuffix $(o_ext),$(programs_cpp_test))
 
 archives := $(addsuffix $(archive_ext),$(libraries))
 shared_objects := $(addsuffix $(so_ext),$(shared_libraries))
 
 programs := $(programs_cpp) $(programs_f)
+programs_test := $(programs_cpp_test)
+
 executables := $(addsuffix $(binary_ext),$(programs))
+executables_test := $(addsuffix $(binary_ext),$(programs-test))
 
 ################################################################
 ################################################################
@@ -483,6 +495,10 @@ executables := $(addsuffix $(binary_ext),$(programs))
 #   since they will appear in the dependencies argument to the linker.
 ifneq "$(strip $(programs))" ""
 $(programs): $(archives)
+endif
+
+ifneq "$(strip $(programs_test))" ""
+$(programs_test): $(archives)
 endif
 
 # make all units_cpp-h object files dependent on the header file
@@ -508,6 +524,7 @@ ARFLAGS = r
 # link C++ programs using C++ compiler
 ifneq "$(strip $(programs_cpp))" ""
 $(programs_cpp): CC := $(CXX)
+$(programs_cpp_test): CC := $(CXX)
 endif
 
 # link FORTRAN programs using FORTRAN compiler
@@ -568,6 +585,9 @@ $(foreach target,$(shared_libraries),$(eval $(notdir $(target)) : $(addsuffix .s
 $(foreach target,$(programs),$(eval .PHONY : $(notdir $(target))) )
 $(foreach target,$(programs),$(eval $(notdir $(target)) : $(target)) )
 
+$(foreach target,$(programs_text),$(eval .PHONY : $(notdir $(target))) )
+$(foreach target,$(programs_test),$(eval $(notdir $(target)) : $(target)) )
+
 $(foreach target,$(generated),$(eval .PHONY : $(notdir $(target))) )
 $(foreach target,$(generated),$(eval $(notdir $(target)) : $(target)) )
 
@@ -578,8 +598,10 @@ endif
 ################################################################
 
 splash:
-	@echo "makefile -- hybrid C++/FORTRAN project                     "
-	@echo "M. A. Caprio, University of Notre Dame			  "
+	@echo "makefile -- hybrid C++/FORTRAN project"
+	@echo
+	@echo "M. A. Caprio"
+	@echo "University of Notre Dame"
 	@echo
 	@echo $(project_name) make information
 	@echo
@@ -593,6 +615,8 @@ splash:
 	@echo $(library_journal)
 	@echo
 	@echo "Programs:" $(notdir $(programs))
+	@echo
+	@echo "Programs (test):" $(notdir $(programs_test))
 	@echo
 	@echo "Generated:" $(notdir $(generated))
 	@echo
@@ -608,25 +632,28 @@ splash:
 help:
 	@echo
 	@echo "makefile -- hybrid C++/FORTRAN project                     "
-	@echo "M. A. Caprio, University of Notre Dame			  "
+	@echo "								  "
+	@echo "M. A. Caprio                                               "
+	@echo "University of Notre Dame	                                  "
 	@echo "								  "
 	@echo "Syntax:							  "
 	@echo "  make <target>						  "
 	@echo "								  "
-	@echo "Targets:							  "
-	@echo "  (none) -- a summary of the project is displayed	  "
+	@echo "Targets:                                                   "
+	@echo "  (none) -- a summary of the project is displayed          "
 	@echo "  all  -- all libraries, programs, and generated files 	  "
-	@echo "  libraries -- just the libraries			  "
-	@echo "  programs -- just the programs				  "
+	@echo "  libraries -- just the libraries                          "
+	@echo "  programs -- just the programs                            "
+	@echo "  programs-test -- just the test programs                  "
 	@echo "  generated -- just the generated files (e.g., data files) "
 	@echo "  distrib [tag=<version>] -- make source tarball		  "
 	@echo "    Default tag is YYMMDD date.				  "
 	@echo "  clean -- delete binaries and generated files		  "
 	@echo "								  "
 	@echo "  <library> -- shorthand for full path to library	  "
-	@echo "    EX: Use shorthand target libmylib for xxxx/xxxx/libmylib.a.	  "
+	@echo "    EX: Use shorthand target libmylib for xxxx/xxxx/libmylib.a. "
 	@echo "  <program> -- shorthand for full path to program	  "
-	@echo "    EX: Use shorthand target myprog for xxxx/xxxx/myprog.            "
+	@echo "    EX: Use shorthand target myprog for xxxx/xxxx/myprog.  "
 
 # ending message
 
@@ -644,6 +671,7 @@ finished:
 # general targets
 ################################################################
 
+# Note: "all" excludes test codes
 .PHONY: all
 all: splash libraries programs generated finished
 
@@ -652,6 +680,9 @@ libraries: $(archives) $(shared_objects)
 
 .PHONY: programs
 programs: $(programs)
+
+.PHONY: programs-test
+programs-test: $(programs_test)
 
 .PHONY: generated
 generated: $(generated)
@@ -726,7 +757,7 @@ distribution: distrib
 
 .PHONY: clean
 clean:
-	$(RM) $(objects) $(archives) $(shared_objects) $(executables) $(generated)
+	$(RM) $(objects) $(objects_test) $(archives) $(shared_objects) $(executables) $(executables_test) $(generated)
 
 .PHONY: distclean
 distclean: clean
