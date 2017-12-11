@@ -191,6 +191,18 @@
 #
 ################################################################
 
+
+################################################################
+# declare default target
+################################################################
+
+# This must be the very first target.  So make sure to keep it
+# at the top of the file, before and other targets or any
+# includes (include project.mk) which might contain targets.
+
+.PHONY: splash
+splash:
+
 ################################################################
 ################################################################
 #
@@ -238,13 +250,6 @@ include $(MAKEFILE_CONFIG_DIR)/config.mk
 
 extras :=
 include project.mk
-
-################################################################
-# declare default target
-################################################################
-
-.PHONY: splash
-splash:
 
 ################################################################
 # pass VCS info to compiler
