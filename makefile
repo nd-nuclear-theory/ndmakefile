@@ -29,6 +29,7 @@
 # 7/18/17 (mac): Force creation of installation directories.
 # 11/28/17 (pjf): Add macros for including version information in executables.
 # 12/10/17 (mac): Separate out test programs in target programs-test.
+# 12/19/17 (pjf): Make vcs-* macros just extract/return VCS info.
 #
 ################################################################
 
@@ -215,18 +216,16 @@ splash:
 # version control system setup
 ################################################################
 
-#$(eval $(vcs-git))
-#  Extract Git commit information and store in vcs_revision
-#  Note: eval needed for multi-line macro at top level of file
+#CPPFLAGS += -D'VCS_REVISION="$(vcs-git)"'
+#  Extract Git commit information
 define vcs-git
-  vcs_revision := $(shell git describe --tags --always --dirty)
+$(shell git describe --long --tags --always --dirty)
 endef
 
-#$(eval $(vcs-svn))
-#  Extract SVN revision information and store in vcs_revision
-#  Note: eval needed for multi-line macro at top level of file
+#CPPFLAGS += -D'VCS_REVISION="$(vcs-svn)"'
+#  Extract SVN revision information
 define vcs-svn
-  vcs_revision := $(shell svnversion -n .)
+$(shell svnversion -n .)
 endef
 
 ################################################################
@@ -250,13 +249,6 @@ include $(MAKEFILE_CONFIG_DIR)/config.mk
 
 extras :=
 include project.mk
-
-################################################################
-# pass VCS info to compiler
-################################################################
-ifdef vcs_revision
-  CPPFLAGS += -D'VCS_REVISION="$(vcs_revision)"'
-endif
 
 ################################################################
 ################################################################
