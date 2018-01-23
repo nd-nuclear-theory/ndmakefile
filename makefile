@@ -29,6 +29,7 @@
 # 7/18/17 (mac): Force creation of installation directories.
 # 11/28/17 (pjf): Add macros for including version information in executables.
 # 12/10/17 (mac): Separate out test programs in target programs-test.
+# 1/22/18 (mac): Add module field module_extras to accumulate extra files.
 #
 ################################################################
 
@@ -321,6 +322,7 @@ define begin-module
   module_programs_cpp_test :=
   module_programs_f :=
   module_generated :=
+  module_extras :=
 endef
 
 #$(eval $(library-name))
@@ -375,6 +377,7 @@ define end-module
   programs_cpp_test += $(addprefix $(current-dir)/,$(module_programs_cpp_test))
   programs_f += $(addprefix $(current-dir)/,$(module_programs_f))
   generated += $(addprefix $(current-dir)/,$(module_generated))
+  extras += $(addprefix $(current-dir)/,$(module_extras))
 endef
 
 # Debugging note: The dependency declaration
