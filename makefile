@@ -8,29 +8,30 @@
 # Department of Physics
 # University of Notre Dame
 #
-# 2/24/11 (mac): Created.
-# 3/10/11 (mac): Initial development completed.
-# 4/25/11 (mac): Addition of search_dirs_include and search_dirs_lib
+# 02/24/11 (mac): Created.
+# 03/10/11 (mac): Initial development completed.
+# 04/25/11 (mac): Addition of search_dirs_include and search_dirs_lib
 #   configuration variables.  Addition of optional environment variable
 #   HYBRID_MAKE_DIR for config.mk location.
-# 5/02/11 (tdyt): Launch prepare_install_directory script during install.
-# 11/5/11 (mac): Add installation script hook install_script.
-# 7/4/13 (mac): Dereference symlinks when creating distribution tarball.
-# 9/16/16 (mac):
+# 05/02/11 (tdyt): Launch prepare_install_directory script during install.
+# 11/05/11 (mac): Add installation script hook install_script.
+# 07/04/13 (mac): Dereference symlinks when creating distribution tarball.
+# 09/16/16 (mac):
 #   - Add defaults for config.mk variables.
 #   - Add "make install_lib" to optionally also install libraries.
-# 6/3/17 (mac):
+# 06/03/17 (mac):
 #   - Add support for standalone module compilation (MAKEFILE_STANDALONE).
 #   - Rename environment variable for fallback config directory
 #     (MAKEFILE_CONFIG_DIR).
 #   - Enable override of install_dir_bin.
 #   - DEPRECATED: list-mpi-objects-cpp and list-mpi-programs-cpp
-# 7/12/17 (pjf): Add support for producing shared object (.so) files.
-# 7/18/17 (mac): Force creation of installation directories.
+# 07/12/17 (pjf): Add support for producing shared object (.so) files.
+# 07/18/17 (mac): Force creation of installation directories.
 # 11/28/17 (pjf): Add macros for including version information in executables.
 # 12/10/17 (mac): Separate out test programs in target programs-test.
 # 12/19/17 (pjf): Make vcs-* macros just extract/return VCS info.
-# 1/22/18 (mac): Add module field module_extras to accumulate extra files.
+# 01/22/18 (mac): Add module field module_extras to accumulate extra files.
+# 02/01/19 (pjf): Correctly remove test program executables on clean.
 #
 ################################################################
 
@@ -510,7 +511,7 @@ programs := $(programs_cpp) $(programs_f)
 programs_test := $(programs_cpp_test)
 
 executables := $(addsuffix $(binary_ext),$(programs))
-executables_test := $(addsuffix $(binary_ext),$(programs-test))
+executables_test := $(addsuffix $(binary_ext),$(programs_test))
 
 ################################################################
 ################################################################
