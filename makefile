@@ -32,6 +32,7 @@
 # 12/19/17 (pjf): Make vcs-* macros just extract/return VCS info.
 # 01/22/18 (mac): Add module field module_extras to accumulate extra files.
 # 02/01/19 (pjf): Correctly remove test program executables on clean.
+# 07/01/19 (pjf): Make src_library_dir overridable.
 #
 ################################################################
 
@@ -396,7 +397,7 @@ endef
 # <project_base>/libraries
 # ...
 project_base := $(dir $(PWD))
-src_library_dir := ./libraries
+src_library_dir ?= ./libraries
 
 # search path for external library include files
 #   from config.mk
