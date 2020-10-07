@@ -33,6 +33,8 @@
 # 01/22/18 (mac): Add module field module_extras to accumulate extra files.
 # 02/01/19 (pjf): Correctly remove test program executables on clean.
 # 07/01/19 (pjf): Make src_library_dir overridable.
+# 10/07/20 (pjf): Make `finished` target depend on `libraries`, `programs`,
+#   and `generated` so it appears after everything else when running `make -j`.
 #
 ################################################################
 
@@ -694,7 +696,7 @@ help:
 # ending message
 
 .PHONY: finished
-finished:
+finished: libraries programs generated
 # Displayed since otherwise it is confusing...  Otherwise, if make all
 # is invoked with all targets already made, successful termination
 # would leave us with the help message `To build the project, run
