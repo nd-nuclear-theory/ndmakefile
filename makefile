@@ -1,6 +1,6 @@
 ################################################################
 #
-# makefile for C++ or hybrid C++/FORTRAN projects
+# makefile for C++ or hybrid C++/Fortran projects
 #
 # Language: GNU make
 #
@@ -61,10 +61,10 @@
 #     nonconventional tree structure)
 #
 #   fortran_libs -- the libraries required for a C++ project to
-#     properly link when including FORTRAN objects
+#     properly link when including Fortran objects
 #
 #   fortran_flags -- linking flags required for a C++ project to
-#     include FORTRAN objects
+#     include Fortran objects
 #
 #   shared_ldflags -- linking flags required for producing a shared
 #     object (.so) file.
@@ -409,7 +409,7 @@ CPPFLAGS += $(call sandwich,-I,$(search_dirs_include),)
 vpath %.h $(call sandwich,,$(search_dirs_include),)
 
 # search path for internal library include files
-CPPFLAGS += -I$(src_library_dir)
+CPPFLAGS += $(addprefix -I,$(src_library_dir))
 vpath %.h $(src_library_dir)
 
 ################################################################
@@ -426,10 +426,23 @@ LDFLAGS += $(call sandwich,-L,$(search_dirs_lib),)
 vpath %.a $(src_library_dir)
 
 ################################################################
-# FORTRAN linking setup
+# Fortran compilation setup
 ################################################################
 
-# linking options for linking to FORTRAN
+%.o: %.f90
+	$(FC) $(FCFLAGS) -c $< -o $@
+%.o: %.F90
+	$(FC) $(FCFLAGS) $(CPPFLAGS) -c $< -o $@
+%.o: %.f08
+	$(FC) $(FCFLAGS) -c $< -o $@
+%.o: %.F08
+	$(FC) $(FCFLAGS) $(CPPFLAGS) -c $< -o $@
+
+################################################################
+# Fortran linking setup
+################################################################
+
+# linking options for linking to Fortran
 #   from config.mk
 LDLIBS += $(fortran_libs)
 LDFLAGS += $(fortran_flags)
@@ -565,7 +578,7 @@ $(programs_cpp): CC := $(CXX)
 $(programs_cpp_test): CC := $(CXX)
 endif
 
-# link FORTRAN programs using FORTRAN compiler
+# link Fortran programs using Fortran compiler
 ifneq "$(strip $(programs_f))" ""
 $(programs_f): CC=$(FC)
 endif
@@ -636,7 +649,7 @@ endif
 ################################################################
 
 splash:
-	@echo "makefile -- hybrid C++/FORTRAN project"
+	@echo "makefile -- hybrid C++/Fortran project"
 	@echo
 	@echo "M. A. Caprio"
 	@echo "University of Notre Dame"
@@ -669,7 +682,7 @@ splash:
 .PHONY: help
 help:
 	@echo
-	@echo "makefile -- hybrid C++/FORTRAN project                     "
+	@echo "makefile -- hybrid C++/Fortran project                     "
 	@echo "								  "
 	@echo "M. A. Caprio                                               "
 	@echo "University of Notre Dame	                                  "
