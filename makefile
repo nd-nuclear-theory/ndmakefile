@@ -355,12 +355,14 @@ endif
 #  and defines dependency on object files
 define library
   $(eval module_library := $(library-name))
-  $(eval module_library_ar_name := $(call sandwich,$(current-dir)/,$(module_library),.a))
   $(eval module_library_units := $(module_units_cpp-h) $(module_units_cpp-hpp) $(module_units_f))
   $(eval module_library_objects := $(call sandwich,$(current-dir)/,$(module_library_units),.o))
-  libraries += $(addprefix $(current-dir)/,$(module_library))
-  library_journal += $(module_library) - $(module_library_units) ...
-  $(foreach obj,$(module_library_objects),$(eval $(module_library_ar_name): $(obj)) )
+  ifneq ($(strip $(module_library_objects)),)
+    libraries += $(addprefix $(current-dir)/,$(module_library))
+    library_journal += $(module_library) - $(module_library_units) ...
+    $(eval module_library_ar_name := $(call sandwich,$(current-dir)/,$(module_library),.a))
+    $(foreach obj,$(module_library_objects),$(eval $(module_library_ar_name): $(obj)) )
+  endif
 endef
 
 define shared-library
