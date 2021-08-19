@@ -132,7 +132,10 @@
 # date files to be generated):
 #
 # module_units_h -- units consisting of file.h only
+# module_units_hpp -- units consisting of file.hpp only
 # module_units_cpp-h -- units consisting of file.cpp + file.h
+#   for compilation to file.o and inclusion in library
+# module_units_cpp-hpp -- units consisting of file.cpp + file.hpp
 #   for compilation to file.o and inclusion in library
 # module_units_f -- units consisting of file.f only
 # module_programs_cpp -- programs consisting of file.cpp to be compiled and linked
@@ -165,6 +168,8 @@
 # (3) Predefined prerequisites:
 #    All object files from units_cpp-h are already dependent on both
 #      their .cpp and .h file.
+#    All object files from units_cpp-hpp are already dependent on both
+#      their .cpp and .hpp file.
 #    All object files from units_f are already dependent on
 #      their .f file.
 #
@@ -312,7 +317,9 @@ endif
 #  Note: eval needed for multi-line macro at top level of file
 define begin-module
   module_units_h :=
+  module_units_hpp :=
   module_units_cpp-h :=
+  module_units_cpp-hpp :=
   module_units_f :=
   module_programs_cpp :=
   module_programs_cpp_test :=
@@ -349,7 +356,7 @@ endif
 define library
   $(eval module_library := $(library-name))
   $(eval module_library_ar_name := $(call sandwich,$(current-dir)/,$(module_library),.a))
-  $(eval module_library_units := $(module_units_cpp-h) $(module_units_f))
+  $(eval module_library_units := $(module_units_cpp-h) $(module_units_cpp-hpp) $(module_units_f))
   $(eval module_library_objects := $(call sandwich,$(current-dir)/,$(module_library_units),.o))
   libraries += $(addprefix $(current-dir)/,$(module_library))
   library_journal += $(module_library) - $(module_library_units) ...
@@ -367,7 +374,9 @@ endef
 #  Note: eval needed for multi-line macro at top level of file
 define end-module
   units_h += $(addprefix $(current-dir)/,$(module_units_h))
+  units_hpp += $(addprefix $(current-dir)/,$(module_units_hpp))
   units_cpp-h += $(addprefix $(current-dir)/,$(module_units_cpp-h))
+  units_cpp-hpp += $(addprefix $(current-dir)/,$(module_units_cpp-hpp))
   units_f += $(addprefix $(current-dir)/,$(module_units_f))
   programs_cpp += $(addprefix $(current-dir)/,$(module_programs_cpp))
   programs_cpp_test += $(addprefix $(current-dir)/,$(module_programs_cpp_test))
@@ -462,9 +471,16 @@ LDFLAGS += $(fortran_flags)
 # units_h -- units consisting of file.h only
 units_h :=
 
+# units_hpp -- units consisting of file.hpp only
+units_hpp :=
+
 # units_cpp-h -- units consisting of file.cpp + file.h
 #   for compilation to file.o and inclusion in library
 units_cpp-h :=
+
+# units_cpp-hpp -- units consisting of file.cpp + file.hpp
+#   for compilation to file.o and inclusion in library
+units_cpp-hpp :=
 
 # units_f -- units consisting of file.f only
 units_f :=
@@ -504,20 +520,22 @@ include $(module_files)
 
 cpp_ext := .cpp
 h_ext := .h
+hpp_ext := .hpp
 f_ext := .F
 o_ext := .o
 archive_ext := .a
 so_ext := .so
 binary_ext := $(get-exe-ext)
 
-sources_cpp := $(addsuffix $(cpp_ext),$(units_cpp-h) $(programs_cpp) $(programs_cpp_test))
+sources_cpp := $(addsuffix $(cpp_ext),$(units_cpp-h) $(units_cpp-hpp) $(programs_cpp) $(programs_cpp_test))
 sources_h := $(addsuffix $(h_ext),$(units_cpp-h) $(units_h))
+sources_hpp := $(addsuffix $(hpp_ext),$(units_cpp-hpp) $(units_hpp))
 sources_f := $(addsuffix $(f_ext),$(units_f) $(programs_f))
-sources := $(sources_cpp) $(sources_h) $(sources_f)
+sources := $(sources_cpp) $(sources_h) $(sources_hpp) $(sources_f)
 
 makefiles := $(MAKEFILE_LIST)
 
-objects := $(addsuffix $(o_ext),$(units_cpp-h) $(units_f) $(programs_cpp) $(programs_f))
+objects := $(addsuffix $(o_ext),$(units_cpp-h) $(units_cpp-hpp) $(units_f) $(programs_cpp) $(programs_f))
 objects_test := $(addsuffix $(o_ext),$(programs_cpp_test))
 
 archives := $(addsuffix $(archive_ext),$(libraries))
@@ -555,7 +573,13 @@ endif
 # make all units_cpp-h object files dependent on the header file
 #   using static pattern rule
 ifneq "$(strip $(units_cpp-h))" ""
-$(addsuffix .o,$(units_cpp-h)): %.o: %.h
+$(addsuffix .o,$(units_cpp-h)): %.o: %$(h_ext)
+endif
+
+# make all units_cpp-hpp object files dependent on the header file
+#   using static pattern rule
+ifneq "$(strip $(units_cpp-hpp))" ""
+$(addsuffix .o,$(units_cpp-hpp)): %.o: %$(hpp_ext)
 endif
 
 # object library rule
@@ -754,7 +778,7 @@ install-bin: programs
 	install -D $(executables) --target-directory=$(install_dir_bin)
 
 .PHONY: install-include
-install-include: ${sources_h}
+install-include: ${sources_h} ${sources_hpp}
 	@echo Installing includes to $(install_dir_include)...
 	@echo WARNING: not yet supported
 	$(MKDIR) $(install_dir_include)
